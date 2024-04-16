@@ -1,0 +1,53 @@
+version: "3.3"
+services:
+    nginx:
+      hostname: firecb-front
+      image: reg.fa-advise.net:2083/firecb-nginx:v1.2
+      working_dir: /var/www
+      environment:
+        PHP_FPM_HOST: php
+        PHP_FPM_PORT: 7001
+      ports:
+        - "8001:80"
+      depends_on:
+        - php
+
+    php:
+      hostname: firecb-back
+      image: reg.fa-advise.net:2083/firecb-php:v1.2
+      env_file:
+        - ./env
+      working_dir: /var/www
+      depends_on:
+        mysql:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+
+    mysql:
+      hostname: firecb-db
+      image: mysql:8.0
+      env_file:
+        - .docker/env.local
+      volumes:
+        - mysql-data:/var/lib/mysql
+      healthcheck:
+          test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+          timeout: 20s
+          retries: 10
+
+    redis:
+      hostname: firecb-redis
+      image: redis:7.0
+      command: ["redis-server", "--appendonly", "yes"]
+      volumes:
+        - redis-data:/data
+      healthcheck:
+        test: ["CMD", "redis-cli","ping"]
+
+
+
+volumes:
+  mysql-data:
+  redis-data:
+  vendor:
